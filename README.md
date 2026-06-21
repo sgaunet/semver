@@ -1,5 +1,16 @@
 # semver
 
+[![GitHub release](https://img.shields.io/github/release/sgaunet/semver.svg)](https://github.com/sgaunet/semver/releases/latest)
+![GitHub Downloads](https://img.shields.io/github/downloads/sgaunet/semver/total)
+[![Go Report Card](https://goreportcard.com/badge/github.com/sgaunet/semver)](https://goreportcard.com/report/github.com/sgaunet/semver)
+![Test Coverage](https://raw.githubusercontent.com/wiki/sgaunet/semver/coverage-badge.svg)
+[![linter](https://github.com/sgaunet/semver/actions/workflows/linter.yml/badge.svg)](https://github.com/sgaunet/semver/actions/workflows/linter.yml)
+[![coverage](https://github.com/sgaunet/semver/actions/workflows/coverage.yml/badge.svg)](https://github.com/sgaunet/semver/actions/workflows/coverage.yml)
+[![Snapshot Build](https://github.com/sgaunet/semver/actions/workflows/snapshot.yml/badge.svg)](https://github.com/sgaunet/semver/actions/workflows/snapshot.yml)
+[![Release Build](https://github.com/sgaunet/semver/actions/workflows/release.yml/badge.svg)](https://github.com/sgaunet/semver/actions/workflows/release.yml)
+[![GoDoc](https://godoc.org/github.com/sgaunet/semver?status.svg)](https://godoc.org/github.com/sgaunet/semver)
+[![License](https://img.shields.io/github/license/sgaunet/semver.svg)](LICENSE)
+
 A single, statically linked CLI for manipulating [Semantic Versions](https://semver.org).
 Bump versions, drive a pre-release lifecycle, compare, sort, validate, extract
 components, and test versions against range constraints. No runtime dependencies.
