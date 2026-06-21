@@ -88,5 +88,9 @@ release:
   github:
     owner: sgaunet
     name: semver
+  # Make re-runs idempotent: if an asset upload returns 422 (the asset already
+  # exists on the release), delete the existing asset and retry the upload
+  # instead of failing the whole release.
+  replace_existing_artifacts: true
   draft: false
   prerelease: auto
