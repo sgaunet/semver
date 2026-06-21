@@ -1,36 +1,202 @@
+# golangci-lint Configuration
+# Optimized for golangci-lint v2.4.0+
+# Docs: https://golangci-lint.run/usage/configuration/
+# CUSTOMIZE: Adjust disabled linters and settings based on project needs
+
+---
+# Configuration format version
 version: "2"
 
+# Run configuration
+run:
+  # Lint test files as well (semver ships unit, property, and integration tests)
+  # CUSTOMIZE: Set to false to skip linting test files
+  tests: false
+
+  # Optional: Timeout for analysis (default: 1m)
+  # timeout: 5m
+
+  # Optional: Number of CPUs to use (default: number of logical CPUs)
+  # concurrency: 4
+
+  # Optional: Exit code when issues are found (default: 1)
+  # issues-exit-code: 1
+
+  # Optional: Analyze only new code (faster for development)
+  # fast: false
+
+  # Optional: Directories to skip
+  # skip-dirs:
+  #   - vendor
+  #   - third_party
+  #   - generated
+
+  # Optional: Files to skip
+  # skip-files:
+  #   - ".*\\.pb\\.go$"
+  #   - ".*_gen\\.go$"
+
+# Linter configuration
 linters:
-  default: standard
-  enable:
-    - errcheck
-    - govet
-    - ineffassign
-    - staticcheck
-    - unused
-    - revive
-    - misspell
-    - unconvert
-    - prealloc
-    - gocritic
+  # Enable all linters by default for maximum coverage
+  # This ensures you don't miss important issues
+  default: all
+
+  # Disable specific linters that are:
+  # - Too opinionated (style preferences)
+  # - Too strict (reduce false positives)
+  # - Project-specific (require custom configuration)
+  disable:
+    # ===== STYLE / FORMATTING (Opinionated) =====
+
+    # wsl, wsl_v5: Whitespace Linter
+    # Enforces blank lines in specific places
+    # Disabled: Too opinionated, conflicts with team preferences
+    - wsl
+    - wsl_v5
+
+    # nlreturn: Requires newline before return statement
+    # Disabled: Style preference, not a real issue
+    - nlreturn
+
+    # lll: Line length limit (default 120 characters)
+    # Disabled: Modern screens handle longer lines
+    # Re-enable if your team enforces strict line limits
+    - lll
+
+    # ===== STRICTNESS (Too Restrictive) =====
+
+    # varnamelen: Minimum variable name length
+    # Disabled: Breaks idiomatic Go (short names in small scopes)
+    # Example: i, j, v are perfectly fine in loops
+    - varnamelen
+
+    # exhaustruct: Requires all struct fields to be set
+    # Disabled: Too verbose, zero values are a Go feature
+    # Re-enable for critical structs where all fields must be explicit
+    - exhaustruct
+
+    # noinlineerr: Disallows inline error creation
+    # Disabled: Forces error variables for simple cases
+    - noinlineerr
+
+    # ===== PROJECT-SPECIFIC (Requires Configuration) =====
+
+    # depguard: Dependency guard - blocks specific imports
+    # Disabled: Requires project-specific rules
+    # Re-enable when you want to enforce import restrictions:
+    # linters.settings:
+    #   depguard:
+    #     rules:
+    #       main:
+    #         deny:
+    #           - pkg: "github.com/sirupsen/logrus"
+    #             desc: Use structured logging instead
+    - depguard
+
+    # tagliatelle: Struct tag naming convention
+    # Disabled: Tag format depends on API requirements (camelCase vs snake_case)
+    # Re-enable if your project enforces consistent tag naming
+    - tagliatelle
+
+    # forbidigo: Forbids specific identifiers
+    # Disabled: Requires project-specific configuration
+    # Re-enable to block problematic functions:
+    # linters.settings:
+    #   forbidigo:
+    #     forbid:
+    #       - p: ^fmt\.Print.*$
+    #         msg: Use proper logging instead of fmt.Print
+    - forbidigo
+
+    # ===== ARCHITECTURE (Allow Flexibility) =====
+
+    # gochecknoinits: Disallows init() functions
+    # Disabled: Init functions are valid Go feature
+    # Useful for package initialization, flag parsing, registration
+    - gochecknoinits
+
+    # gochecknoglobals: Disallows package-level variables
+    # Disabled: Too strict for practical Go code
+    # Globals are necessary for configs, loggers, singletons
+    - gochecknoglobals
+    - gomodguard_v2
+    - gomodguard
+
+  # Linter-specific settings (v2 schema: nested under linters.settings)
   settings:
-    revive:
-      rules:
-        - name: exported
-          disabled: false
     errcheck:
-      # Writes to stdout/stderr via fmt.Fprint* intentionally ignore their error;
-      # a broken pipe surfaces via SIGPIPE rather than an unwound error path.
+      # Writes to stdout/stderr via fmt.Fprint* intentionally ignore their
+      # error; a broken pipe surfaces via SIGPIPE rather than an unwound
+      # error path. (Preserved from the project's original configuration.)
       exclude-functions:
         - fmt.Fprint
         - fmt.Fprintf
         - fmt.Fprintln
+    revive:
+      rules:
+        # Require doc comments on exported symbols
+        - name: exported
+          disabled: false
 
+# Formatter configuration
+# In golangci-lint v2, formatters run separately from linters.
 formatters:
   enable:
     - gofmt
     - goimports
 
+# Issue reporting (max settings preserved from the project's original config)
 issues:
-  max-issues-per-linter: 0
-  max-same-issues: 0
+  # Maximum issues count per linter
+  max-issues-per-linter: 0  # 0 = unlimited
+  # Maximum count of issues with the same text
+  max-same-issues: 0        # 0 = unlimited
+
+  # Optional: Show only new issues
+  # new: false
+  # new-from-rev: main  # Compare against main branch
+  #
+  # Optional: Exclude directories
+  # exclude-dirs:
+  #   - vendor
+  #   - testdata
+  #
+  # Optional: Exclude files
+  # exclude-files:
+  #   - ".*\\.pb\\.go$"     # Protocol buffer generated files
+  #   - ".*_gen\\.go$"       # Generated code
+  #
+  # Optional: Exclude by rule
+  # exclude-rules:
+  #   # More lenient for test files
+  #   - path: _test\.go
+  #     linters:
+  #       - errcheck      # Allow unchecked errors in tests
+  #       - funlen        # Tests can be longer
+  #       - gocyclo       # Tests can be more complex
+  #       - dupl          # Duplication OK in table tests
+  #       - gosec         # Security less critical in tests
+
+# Quick Reference - Common Customizations:
+#
+# 1. Enable a disabled linter:
+#    Remove it from the 'disable' list above
+#
+# 2. Disable an additional linter:
+#    Add it to the 'disable' list above
+#
+# 3. Adjust complexity threshold:
+#    Add a gocyclo block under linters.settings and set min-complexity
+#
+# 4. Exclude test files from specific linters:
+#    Uncomment the issues.exclude-rules section
+#
+# 5. Only check new code:
+#    Set issues.new: true and issues.new-from-rev: main
+#
+# 6. Increase timeout for large projects:
+#    Set run.timeout: 10m
+
+# Full linter list: https://golangci-lint.run/usage/linters/
+# Run 'golangci-lint linters' to see all available linters
