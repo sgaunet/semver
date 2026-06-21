@@ -1,0 +1,36 @@
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - revive
+    - misspell
+    - unconvert
+    - prealloc
+    - gocritic
+  settings:
+    revive:
+      rules:
+        - name: exported
+          disabled: false
+    errcheck:
+      # Writes to stdout/stderr via fmt.Fprint* intentionally ignore their error;
+      # a broken pipe surfaces via SIGPIPE rather than an unwound error path.
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
