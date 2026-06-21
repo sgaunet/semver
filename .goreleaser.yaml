@@ -1,0 +1,51 @@
+version: 2
+
+project_name: semver
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: semver
+    main: ./cmd/semver
+    binary: semver
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/sgaunet/semver/internal/cli.Version={{.Version}}
+      - -X github.com/sgaunet/semver/internal/cli.Commit={{.Commit}}
+      - -X github.com/sgaunet/semver/internal/cli.Date={{.CommitDate}}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+release:
+  draft: false
