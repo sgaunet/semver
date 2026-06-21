@@ -29,15 +29,25 @@ builds:
       - arm64
 
 archives:
-  - formats: [tar.gz]
+  - id: default
+    formats: [tar.gz]
     name_template: >-
-      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
     format_overrides:
       - goos: windows
         formats: [zip]
+    files:
+      - README.md
 
 checksum:
   name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-dev"
 
 changelog:
   sort: asc
@@ -47,5 +57,36 @@ changelog:
       - "^test:"
       - "^chore:"
 
+homebrew_casks:
+  - name: semver
+    ids:
+      - default
+    homepage: 'https://github.com/sgaunet/semver'
+    description: 'Semantic version CLI to bump, compare, sort, validate, and check version constraints'
+    directory: Casks
+    binaries:
+      - semver
+    commit_author:
+      name: sgaunet
+      email: 1552102+sgaunet@users.noreply.github.com
+    repository:
+      owner: sgaunet
+      name: homebrew-tools
+      # Token with 'repo' scope is required for pushing to a different repository
+      token: '{{ .Env.HOMEBREW_TAP_TOKEN }}'
+    # Strip the macOS quarantine xattr so Gatekeeper does not block the
+    # unsigned binary on first launch. Long-term fix is Apple Developer ID
+    # signing + notarization.
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/semver"]
+          end
+
 release:
+  github:
+    owner: sgaunet
+    name: semver
   draft: false
+  prerelease: auto
