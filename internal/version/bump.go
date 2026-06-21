@@ -59,7 +59,8 @@ func (v Version) bump(k BumpKind) Version {
 		return v.IncMajor()
 	case BumpMinor:
 		return v.IncMinor()
-	default:
+	case BumpPatch:
 		return v.IncPatch()
 	}
+	return v.IncPatch()
 }

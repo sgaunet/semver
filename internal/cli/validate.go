@@ -35,7 +35,7 @@ func runValidate(_ context.Context, args []string, s streams) int {
 
 	v, err := version.Parse(rest[0])
 	if err != nil {
-		if s.format == "json" {
+		if s.format == formatJSON {
 			s.emit("", validateErr{Input: rest[0], Valid: false, Error: err.Error()})
 		} else {
 			s.errorf("%v", err)
@@ -43,7 +43,7 @@ func runValidate(_ context.Context, args []string, s streams) int {
 		return CodeInvalid
 	}
 
-	if s.format == "json" {
+	if s.format == formatJSON {
 		return s.emit("", validateOK{
 			Input:      rest[0],
 			Valid:      true,

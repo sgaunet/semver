@@ -1,7 +1,6 @@
 package version
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 )
@@ -12,10 +11,10 @@ import (
 // is cleared.
 func (v Version) StartPrerelease(id string, k BumpKind) (Version, error) {
 	if id == "" {
-		return Version{}, errors.New("pre-release identifier is empty")
+		return Version{}, errPreIdentEmpty
 	}
 	if !isValidPreIdentifier(id) {
-		return Version{}, fmt.Errorf("invalid pre-release identifier %q", id)
+		return Version{}, fmt.Errorf("%w %q", errPreIdentInvalid, id)
 	}
 	out := v.bump(k)
 	out.Pre = []string{id, "1"}
@@ -28,7 +27,7 @@ func (v Version) StartPrerelease(id string, k BumpKind) (Version, error) {
 // an error if v has no pre-release. Build metadata is cleared.
 func (v Version) IncPrerelease() (Version, error) {
 	if !v.IsPrerelease() {
-		return Version{}, errors.New("version has no pre-release to increment")
+		return Version{}, errNoPreToIncrement
 	}
 	out := v.clone()
 	out.Build = nil
@@ -36,7 +35,7 @@ func (v Version) IncPrerelease() (Version, error) {
 	if isNumericIdent(last) {
 		n, err := strconv.ParseUint(last, 10, 64)
 		if err != nil {
-			return Version{}, fmt.Errorf("pre-release counter %q is out of range", last)
+			return Version{}, fmt.Errorf("%w (%q)", errPreCounterRange, last)
 		}
 		out.Pre[len(out.Pre)-1] = strconv.FormatUint(n+1, 10)
 	} else {
@@ -50,7 +49,7 @@ func (v Version) IncPrerelease() (Version, error) {
 // pre-release. Build metadata is cleared.
 func (v Version) Finalize() (Version, error) {
 	if !v.IsPrerelease() {
-		return Version{}, errors.New("version has no pre-release to finalize")
+		return Version{}, errNoPreToFinalize
 	}
 	out := v.clone()
 	out.Pre = nil

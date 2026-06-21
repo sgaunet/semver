@@ -22,7 +22,7 @@ type streams struct {
 // emit writes the command result: the bare token in text mode, or the JSON encoding
 // of jsonVal in json mode. It returns CodeOK, or CodeError if encoding fails.
 func (s streams) emit(text string, jsonVal any) int {
-	if s.format == "json" {
+	if s.format == formatJSON {
 		b, err := json.Marshal(jsonVal)
 		if err != nil {
 			s.errorf("encoding json: %v", err)

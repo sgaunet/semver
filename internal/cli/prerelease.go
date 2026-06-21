@@ -56,13 +56,13 @@ func runPrerelease(_ context.Context, args []string, s streams) int {
 
 func bumpKind(s string) (version.BumpKind, error) {
 	switch s {
-	case "major":
+	case cmdMajor:
 		return version.BumpMajor, nil
-	case "minor":
+	case cmdMinor:
 		return version.BumpMinor, nil
-	case "patch":
+	case cmdPatch:
 		return version.BumpPatch, nil
 	default:
-		return 0, fmt.Errorf("invalid --bump %q: want major, minor, or patch", s)
+		return 0, fmt.Errorf("invalid --bump %q: %w", s, errInvalidBump)
 	}
 }

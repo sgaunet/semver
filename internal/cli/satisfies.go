@@ -19,7 +19,7 @@ func runSatisfies(_ context.Context, args []string, s streams) int {
 	if !ok {
 		return code
 	}
-	if len(rest) != 2 {
+	if len(rest) != twoArgs {
 		s.errorf("expected: satisfies <version> <constraint>")
 		return CodeUsage
 	}

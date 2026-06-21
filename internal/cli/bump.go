@@ -31,9 +31,9 @@ func runBump(op string) commandFunc {
 		}
 		var res version.Version
 		switch op {
-		case "major":
+		case cmdMajor:
 			res = v.IncMajor()
-		case "minor":
+		case cmdMinor:
 			res = v.IncMinor()
 		default:
 			res = v.IncPatch()

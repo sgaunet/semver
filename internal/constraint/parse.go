@@ -1,7 +1,6 @@
 package constraint
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -16,7 +15,7 @@ import (
 func Parse(s string) (Constraint, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
-		return Constraint{}, errors.New("empty constraint")
+		return Constraint{}, errEmptyConstraint
 	}
 	var c Constraint
 	for orPart := range strings.SplitSeq(s, "||") {
@@ -31,11 +30,22 @@ func Parse(s string) (Constraint, error) {
 
 func parseGroup(s string) ([]comparator, error) {
 	if s == "" {
-		return nil, errors.New("empty constraint group")
+		return nil, errEmptyGroup
 	}
-	tokens := strings.FieldsFunc(s, func(r rune) bool {
-		return r == ' ' || r == '\t' || r == ','
-	})
+	tokens := strings.FieldsFunc(s, isSeparator)
+	group, err := comparatorsFromTokens(tokens)
+	if err != nil {
+		return nil, err
+	}
+	if len(group) == 0 {
+		return nil, errNoComparators
+	}
+	return group, nil
+}
+
+// comparatorsFromTokens turns AND-group tokens into comparators, expanding hyphen
+// ranges ("A - B") spread across three tokens.
+func comparatorsFromTokens(tokens []string) ([]comparator, error) {
 	var group []comparator
 	for i := 0; i < len(tokens); i++ {
 		// Hyphen range: "A - B".
@@ -49,7 +59,7 @@ func parseGroup(s string) ([]comparator, error) {
 			continue
 		}
 		if tokens[i] == "-" {
-			return nil, errors.New("unexpected '-' in constraint")
+			return nil, errUnexpectedHyphen
 		}
 		cmps, err := parseComparator(tokens[i])
 		if err != nil {
@@ -57,10 +67,12 @@ func parseGroup(s string) ([]comparator, error) {
 		}
 		group = append(group, cmps...)
 	}
-	if len(group) == 0 {
-		return nil, errors.New("no comparators in constraint group")
-	}
 	return group, nil
+}
+
+// isSeparator reports whether r delimits comparators within an AND-group.
+func isSeparator(r rune) bool {
+	return r == ' ' || r == '\t' || r == ','
 }
 
 func parseComparator(tok string) ([]comparator, error) {
@@ -71,25 +83,7 @@ func parseComparator(tok string) ([]comparator, error) {
 		return tilde(tok[1:])
 	}
 
-	o := opEQ
-	rest := tok
-	switch {
-	case strings.HasPrefix(tok, ">="):
-		o, rest = opGE, tok[2:]
-	case strings.HasPrefix(tok, "<="):
-		o, rest = opLE, tok[2:]
-	case strings.HasPrefix(tok, "!="):
-		o, rest = opNE, tok[2:]
-	case strings.HasPrefix(tok, ">"):
-		o, rest = opGT, tok[1:]
-	case strings.HasPrefix(tok, "<"):
-		o, rest = opLT, tok[1:]
-	case strings.HasPrefix(tok, "=="):
-		o, rest = opEQ, tok[2:]
-	case strings.HasPrefix(tok, "="):
-		o, rest = opEQ, tok[1:]
-	}
-
+	o, rest := splitOperator(tok)
 	p, err := parsePartial(rest)
 	if err != nil {
 		return nil, err
@@ -99,6 +93,29 @@ func parseComparator(tok string) ([]comparator, error) {
 		return p.rangeComparators(), nil
 	}
 	return []comparator{{o: o, v: p.version()}}, nil
+}
+
+// splitOperator strips a leading comparison operator from tok, returning the operator
+// (defaulting to equality) and the remaining version operand.
+func splitOperator(tok string) (op, string) {
+	switch {
+	case strings.HasPrefix(tok, ">="):
+		return opGE, tok[2:]
+	case strings.HasPrefix(tok, "<="):
+		return opLE, tok[2:]
+	case strings.HasPrefix(tok, "!="):
+		return opNE, tok[2:]
+	case strings.HasPrefix(tok, ">"):
+		return opGT, tok[1:]
+	case strings.HasPrefix(tok, "<"):
+		return opLT, tok[1:]
+	case strings.HasPrefix(tok, "=="):
+		return opEQ, tok[2:]
+	case strings.HasPrefix(tok, "="):
+		return opEQ, tok[1:]
+	default:
+		return opEQ, tok
+	}
 }
 
 func caret(s string) ([]comparator, error) {
@@ -189,10 +206,18 @@ func (p partial) rangeComparators() []comparator {
 	}
 }
 
+// Indices of the dotted segments of a version operand, and the maximum number of them.
+const (
+	majorIndex  = 0
+	minorIndex  = 1
+	patchIndex  = 2
+	maxSegments = 3
+)
+
 func parsePartial(s string) (partial, error) {
 	var p partial
 	if s == "" {
-		return p, errors.New("empty version in constraint")
+		return p, errEmptyVersion
 	}
 	if s[0] == 'v' || s[0] == 'V' {
 		s = s[1:]
@@ -206,28 +231,38 @@ func parsePartial(s string) (partial, error) {
 		s = before
 	}
 	segs := strings.Split(s, ".")
-	if len(segs) > 3 {
-		return p, fmt.Errorf("invalid version %q in constraint", s)
+	if len(segs) > maxSegments {
+		return p, fmt.Errorf("%w %q in constraint", errInvalidVersion, s)
 	}
+	if err := parseSegments(&p, segs); err != nil {
+		return p, err
+	}
+	return p, nil
+}
+
+// parseSegments fills p's numeric components from the dotted segments, stopping at the
+// first wildcard ('x', 'X', or '*'), after which the remaining components are
+// unspecified.
+func parseSegments(p *partial, segs []string) error {
 	for idx, seg := range segs {
 		if seg == "x" || seg == "X" || seg == "*" {
 			p.wildcard = true
-			break // components after a wildcard are unspecified
+			break
 		}
 		n, err := strconv.ParseUint(seg, 10, 64)
 		if err != nil {
-			return p, fmt.Errorf("invalid version component %q in constraint", seg)
+			return fmt.Errorf("%w %q in constraint", errInvalidComponent, seg)
 		}
 		switch idx {
-		case 0:
+		case majorIndex:
 			p.major, p.hasMajor = n, true
-		case 1:
+		case minorIndex:
 			p.minor, p.hasMinor = n, true
-		case 2:
+		case patchIndex:
 			p.patch, p.hasPatch = n, true
 		}
 	}
-	return p, nil
+	return nil
 }
 
 func ver(major, minor, patch uint64) version.Version {

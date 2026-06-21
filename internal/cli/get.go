@@ -20,7 +20,7 @@ func runGet(_ context.Context, args []string, s streams) int {
 	if !ok {
 		return code
 	}
-	if len(rest) != 2 {
+	if len(rest) != twoArgs {
 		s.errorf("expected: get <component> <version>")
 		return CodeUsage
 	}
@@ -31,20 +31,8 @@ func runGet(_ context.Context, args []string, s streams) int {
 		return CodeUsage
 	}
 
-	var value string
-	present := true
-	switch comp {
-	case "major":
-		value = strconv.FormatUint(v.Major, 10)
-	case "minor":
-		value = strconv.FormatUint(v.Minor, 10)
-	case "patch":
-		value = strconv.FormatUint(v.Patch, 10)
-	case "prerelease":
-		value, present = v.Prerelease(), v.IsPrerelease()
-	case "build":
-		value, present = v.Metadata(), len(v.Build) > 0
-	default:
+	value, present, known := getComponent(comp, v)
+	if !known {
 		s.errorf("unknown component %q: want major, minor, patch, prerelease, or build", comp)
 		return CodeUsage
 	}
@@ -56,4 +44,23 @@ func runGet(_ context.Context, args []string, s streams) int {
 		return CodeAbsent
 	}
 	return CodeOK
+}
+
+// getComponent extracts the named component from v. It returns the component's string
+// value, whether it is present on v, and whether comp names a known component.
+func getComponent(comp string, v version.Version) (string, bool, bool) {
+	switch comp {
+	case cmdMajor:
+		return strconv.FormatUint(v.Major, 10), true, true
+	case cmdMinor:
+		return strconv.FormatUint(v.Minor, 10), true, true
+	case cmdPatch:
+		return strconv.FormatUint(v.Patch, 10), true, true
+	case "prerelease":
+		return v.Prerelease(), v.IsPrerelease(), true
+	case "build":
+		return v.Metadata(), len(v.Build) > 0, true
+	default:
+		return "", false, false
+	}
 }

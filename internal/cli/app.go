@@ -28,9 +28,9 @@ type command struct {
 
 func commands() []command {
 	return []command{
-		{"major", "Bump the major version", runBump("major")},
-		{"minor", "Bump the minor version", runBump("minor")},
-		{"patch", "Bump the patch version", runBump("patch")},
+		{cmdMajor, "Bump the major version", runBump(cmdMajor)},
+		{cmdMinor, "Bump the minor version", runBump(cmdMinor)},
+		{cmdPatch, "Bump the patch version", runBump(cmdPatch)},
 		{"prerelease", "Start or increment a pre-release", runPrerelease},
 		{"release", "Finalize a pre-release to its stable version", runRelease},
 		{"compare", "Compare two versions", runCompare},
@@ -54,7 +54,7 @@ func Run(ctx context.Context, args []string, in io.Reader, out, errw io.Writer) 
 		printMainHelp(out)
 		return CodeOK
 	case "--version":
-		s := streams{in: in, out: out, err: errw, format: "text"}
+		s := streams{in: in, out: out, err: errw, format: formatText}
 		return runVersion(ctx, nil, s)
 	}
 	for _, c := range commands() {
@@ -71,7 +71,7 @@ func Run(ctx context.Context, args []string, in io.Reader, out, errw io.Writer) 
 // help printer that documents the command.
 func setup(name, argsHint, summary string, s *streams) *flag.FlagSet {
 	fs := flag.NewFlagSet(name, flag.ContinueOnError)
-	fs.StringVar(&s.format, "output", "text", "output format: text|json")
+	fs.StringVar(&s.format, "output", formatText, "output format: text|json")
 	fs.BoolVar(&s.quiet, "quiet", false, "suppress non-error stderr output")
 	fs.BoolVar(&s.quiet, "q", false, "shorthand for --quiet")
 	fs.BoolVar(&s.verbose, "verbose", false, "verbose stderr output")
@@ -114,7 +114,7 @@ func parse(fs *flag.FlagSet, args []string, s *streams) ([]string, int, bool) {
 		rest = rest[1:]
 	}
 
-	if s.format != "text" && s.format != "json" {
+	if s.format != formatText && s.format != formatJSON {
 		s.errorf("invalid --output %q: want text or json", s.format)
 		return nil, CodeUsage, false
 	}

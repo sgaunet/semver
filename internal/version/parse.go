@@ -1,11 +1,13 @@
 package version
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 )
+
+// coreParts is the number of dotted components in a version core (major.minor.patch).
+const coreParts = 3
 
 // Parse parses s as a semantic version, accepting an optional leading 'v' or 'V'
 // prefix which is preserved by String. It applies the strict Semantic Versioning
@@ -13,7 +15,7 @@ import (
 // printing to stderr.
 func Parse(s string) (Version, error) {
 	if s == "" {
-		return Version{}, errors.New(`invalid version "": empty string`)
+		return Version{}, fmt.Errorf("invalid version %q: %w", s, errEmptyVersion)
 	}
 	orig := s
 	var v Version
@@ -44,22 +46,31 @@ func Parse(s string) (Version, error) {
 		numbers = before
 	}
 
-	// Core: major.minor.patch.
-	parts := strings.Split(numbers, ".")
-	if len(parts) != 3 {
-		return Version{}, fmt.Errorf("invalid version %q: expected major.minor.patch", orig)
+	major, minor, patch, err := parseCore(numbers, orig)
+	if err != nil {
+		return Version{}, err
 	}
-	names := [3]string{"major", "minor", "patch"}
-	var out [3]uint64
+	v.Major, v.Minor, v.Patch = major, minor, patch
+	return v, nil
+}
+
+// parseCore parses the major.minor.patch component of numbers, using orig only for
+// error messages.
+func parseCore(numbers, orig string) (uint64, uint64, uint64, error) {
+	parts := strings.Split(numbers, ".")
+	if len(parts) != coreParts {
+		return 0, 0, 0, fmt.Errorf("invalid version %q: %w", orig, errFormat)
+	}
+	names := [coreParts]string{"major", "minor", "patch"}
+	var out [coreParts]uint64
 	for i, p := range parts {
 		n, err := parseNumeric(p)
 		if err != nil {
-			return Version{}, fmt.Errorf("invalid version %q: %s %w", orig, names[i], err)
+			return 0, 0, 0, fmt.Errorf("invalid version %q: %s %w", orig, names[i], err)
 		}
 		out[i] = n
 	}
-	v.Major, v.Minor, v.Patch = out[0], out[1], out[2]
-	return v, nil
+	return out[0], out[1], out[2], nil
 }
 
 // MustParse is like Parse but panics on error. Intended for tests and constants.
@@ -73,19 +84,19 @@ func MustParse(s string) Version {
 
 func parseNumeric(s string) (uint64, error) {
 	if s == "" {
-		return 0, errors.New("component is missing")
+		return 0, errComponentMissing
 	}
 	if len(s) > 1 && s[0] == '0' {
-		return 0, fmt.Errorf("component has a leading zero (%q)", s)
+		return 0, fmt.Errorf("%w (%q)", errComponentLeadingZero, s)
 	}
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		if s[i] < '0' || s[i] > '9' {
-			return 0, fmt.Errorf("component is not numeric (%q)", s)
+			return 0, fmt.Errorf("%w (%q)", errComponentNotNumeric, s)
 		}
 	}
 	n, err := strconv.ParseUint(s, 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("component %q is out of range", s)
+		return 0, fmt.Errorf("%w (%q)", errComponentRange, s)
 	}
 	return n, nil
 }
@@ -95,25 +106,25 @@ func parseNumeric(s string) (uint64, error) {
 // zero; build-metadata identifiers may.
 func parseIdentifiers(s string, build bool) ([]string, error) {
 	if s == "" {
-		return nil, errors.New("is empty")
+		return nil, errIdentListEmpty
 	}
 	ids := strings.Split(s, ".")
 	for _, id := range ids {
 		if id == "" {
-			return nil, errors.New("has an empty identifier")
+			return nil, errIdentEmpty
 		}
 		if !isAlnumHyphen(id) {
-			return nil, fmt.Errorf("has invalid identifier %q", id)
+			return nil, fmt.Errorf("%w %q", errIdentInvalid, id)
 		}
 		if !build && isNumericIdent(id) && len(id) > 1 && id[0] == '0' {
-			return nil, fmt.Errorf("has a leading zero in numeric identifier %q", id)
+			return nil, fmt.Errorf("%w %q", errIdentLeadingZero, id)
 		}
 	}
 	return ids, nil
 }
 
 func isAlnumHyphen(s string) bool {
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		c := s[i]
 		switch {
 		case c >= '0' && c <= '9', c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c == '-':
@@ -128,7 +139,7 @@ func isNumericIdent(s string) bool {
 	if s == "" {
 		return false
 	}
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		if s[i] < '0' || s[i] > '9' {
 			return false
 		}

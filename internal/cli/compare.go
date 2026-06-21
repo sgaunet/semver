@@ -19,7 +19,7 @@ func runCompare(_ context.Context, args []string, s streams) int {
 	if !ok {
 		return code
 	}
-	if len(rest) != 2 {
+	if len(rest) != twoArgs {
 		s.errorf("expected exactly two version arguments")
 		return CodeUsage
 	}
