@@ -8,11 +8,10 @@ name: snapshot
 
 on:
   push:
-    # Optionally limit to specific branches
-    # branches: [main, develop]
-
-    # Optionally skip on tag pushes (since release.yml handles those)
-    tags-ignore:
+    # Run on every commit pushed to any branch ('**' also matches nested
+    # branches like feature/foo). Tag pushes don't match a branches filter,
+    # so they're excluded automatically and handled by release.yml.
+    branches:
       - '**'
 
 permissions:
