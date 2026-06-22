@@ -5,6 +5,7 @@ go = "1.26.1"
 "aqua:docker/buildx" = "latest"
 docker-cli = "latest"
 docker-slim = "latest"
+goreleaser = "v2.16.0"
 
 [tasks.lint]
 run = "golangci-lint run ./..."
