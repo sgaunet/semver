@@ -30,16 +30,13 @@ builds:
 
 archives:
   - id: default
-    formats: [tar.gz]
+    formats: ["binary"]
     name_template: >-
       {{ .ProjectName }}_
       {{- .Version }}_
       {{- .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else }}{{ .Arch }}{{ end }}
-    format_overrides:
-      - goos: windows
-        formats: [zip]
     files:
       - README.md
 
@@ -83,14 +80,3 @@ homebrew_casks:
           if OS.mac?
             system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/semver"]
           end
-
-release:
-  github:
-    owner: sgaunet
-    name: semver
-  # Make re-runs idempotent: if an asset upload returns 422 (the asset already
-  # exists on the release), delete the existing asset and retry the upload
-  # instead of failing the whole release.
-  replace_existing_artifacts: true
-  draft: false
-  prerelease: auto
