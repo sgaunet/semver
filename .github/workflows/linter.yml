@@ -23,49 +23,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Setup Go environment
-      # Uses Go version from go.mod for consistency
-      - uses: actions/setup-go@v6
+      - uses: jdx/mise-action@v3
         with:
-          go-version-file: 'go.mod'
-
-      # Install Task runner
-      # Task provides consistent build commands across local and CI
-      - name: Install task
-        uses: jaxxstorm/action-install-gh-release@v3.0.0
-        with:
-          repo: go-task/task
-          cache: enable  # Cache binary for faster subsequent runs
-          # tag: v3.39.0  # Optionally pin specific version
-
-      # Install golangci-lint
-      # CUSTOMIZE: Update version as needed
-      - name: Install golangci-lint
-        uses: jaxxstorm/action-install-gh-release@v3.0.0
-        with:
-          repo: golangci/golangci-lint
-          tag: v2.12.2  # CUSTOMIZE: Use latest or pin to specific version
-          cache: enable
-          binaries-location: golangci-lint-2.12.2-linux-amd64
-
-      # Run linter via Task
-      # Requires: Taskfile.yml with 'lint' task defined
-      # Example task: golangci-lint run --timeout=5m ./...
+          install: true # [default: true] run `mise install`
+          cache: true # [default: true] cache mise using GitHub's cache
+  
       - name: Run linter
         shell: /usr/bin/bash {0}
         run: |
           task lint
-
-# Optional: Add linter annotations
-# This posts linter findings as PR comments
-# - name: golangci-lint
-#   uses: golangci/golangci-lint-action@v6
-#   with:
-#     version: v2.12.2
-#     args: --timeout=5m
-
-# Optional: Cancel outdated runs
-# Saves CI minutes by canceling previous runs on new pushes
-# concurrency:
-#   group: ${{ github.workflow }}-${{ github.ref }}
-#   cancel-in-progress: true
