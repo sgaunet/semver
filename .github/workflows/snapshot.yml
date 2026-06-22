@@ -26,55 +26,11 @@ jobs:
         with:
           fetch-depth: 0  # Required for GoReleaser changelog
 
-      # Setup Go environment
-      # Uses Go version from go.mod for consistency
-      - name: Install Go
-        uses: actions/setup-go@v6
+      - uses: jdx/mise-action@v3
         with:
-          go-version-file: 'go.mod'
-
-      # Install Task runner
-      # Task provides consistent build commands across local and CI
-      - name: Install task
-        uses: jaxxstorm/action-install-gh-release@v3.0.0
-        with:
-          repo: go-task/task
-          cache: true  # Cache for faster builds
-          # tag: v3.39.0  # Optionally pin specific version
-
-      # Install GoReleaser
-      # CUSTOMIZE: Pin to specific version if needed
-      - name: Install goreleaser
-        uses: jaxxstorm/action-install-gh-release@v3.0.0
-        with:
-          repo: goreleaser/goreleaser
-          cache: true
-          # tag: v2.5.0  # Optionally pin specific version
-
-      # Setup QEMU for multi-platform Docker builds
-      # Enables building ARM images on x86 runners
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
-
-      # Setup Docker Buildx for advanced build features
-      # Required for multi-platform Docker images
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      # Login to GitHub Container Registry
-      # Required even for snapshot builds if testing Docker functionality
-      # CUSTOMIZE: Add additional registries if needed
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      # Create snapshot build
-      # This runs GoReleaser in snapshot mode (no publishing)
-      # Requires: Taskfile.yml with 'snapshot' task defined
-      # Example task: goreleaser release --snapshot --clean --skip=publish
+          install: true # [default: true] run `mise install`
+          cache: true # [default: true] cache mise using GitHub's cache
+  
       - name: Create snapshot release
         shell: /usr/bin/bash {0}
         run: |
@@ -83,30 +39,3 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Uncomment if using GoReleaser Pro
           # GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
-
-# Optional: Skip Docker builds in snapshot for faster CI
-# Modify Taskfile.yml:
-# snapshot:
-#   cmds:
-#     - goreleaser release --snapshot --clean --skip=publish,docker
-
-# Optional: Cache Go modules
-# - name: Cache Go modules
-#   uses: actions/cache@v4
-#   with:
-#     path: ~/go/pkg/mod
-#     key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-#     restore-keys: |
-#       ${{ runner.os }}-go-
-
-# Optional: Upload snapshot artifacts for testing
-# - name: Upload snapshot artifacts
-#   uses: actions/upload-artifact@v4
-#   with:
-#     name: snapshot
-#     path: dist/
-
-# Optional: Cancel outdated runs to save CI minutes
-# concurrency:
-#   group: ${{ github.workflow }}-${{ github.ref }}
-#   cancel-in-progress: true
