@@ -1,3 +1,6 @@
 # Binaries
 /semver
 /dist/
+/.specify
+/.claude
+/specs

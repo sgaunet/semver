@@ -1,9 +1,10 @@
-// Package integration exercises the built semver binary end-to-end, asserting the
-// stdout/stderr split and exit codes documented in the CLI contract.
-package integration
+// Package integration_test exercises the built semver binary end-to-end, asserting
+// the stdout/stderr split and exit codes documented in the CLI contract.
+package integration_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -22,7 +23,7 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 	binPath = filepath.Join(dir, "semver")
-	build := exec.Command("go", "build", "-o", binPath, "../../cmd/semver")
+	build := exec.CommandContext(context.Background(), "go", "build", "-o", binPath, "../../cmd/semver")
 	build.Stderr = os.Stderr
 	if err := build.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "build binary:", err)
@@ -37,7 +38,7 @@ func TestMain(m *testing.M) {
 // stderr, and the exit code.
 func run(t *testing.T, stdin string, args ...string) (string, string, int) {
 	t.Helper()
-	cmd := exec.Command(binPath, args...)
+	cmd := exec.CommandContext(t.Context(), binPath, args...)
 	if stdin != "" {
 		cmd.Stdin = strings.NewReader(stdin)
 	}
